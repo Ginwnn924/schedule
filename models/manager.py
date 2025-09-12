@@ -1,9 +1,13 @@
+from helper import stamp2str, mymin
+import matplotlib.pyplot as plt
 import numpy as np
 from random import random, randint
-from constant import GTIME as gtime, GAPUP as gapub
 from helper import mymin
 from models.hall import Hall
 from models.movie import Movie
+
+
+
 
 class Manager:
     # Quản lý toàn bộ lịch chiếu, gồm danh sách phòng và phim, các hàm tối ưu và đánh giá lịch
@@ -11,17 +15,19 @@ class Manager:
     halls: halls
     '''
 
-    def __init__(self, halls, movies=None, sorted=True):
+    def __init__(self, halls, movies=None, gtime=None, gapub=None, sorted=True):
         # Khởi tạo đối tượng Manager, sắp xếp phòng và phim, tính toán các thông số ban đầu
         self.halls = halls
         for h in halls:
             h.manager = self
         self.movies = movies
+        self.gtime = gtime
+        self.gapub = gapub
         if sorted:
             self.halls.sort(key=lambda h:h.seatn, reverse=True)
             if movies:
                 self.movies.sort(key=lambda h:h.hot, reverse=True)
-                N = sum(h.type_ for h in self.halls) + len(halls) / 2
+                N = sum(h.type_ for h in self.halls) + len(self.halls) / 2
                 for m in self.movies:
                     p = np.array([m.hot for m in self.movies])
                 self.estimate = [int(k) for k in np.round(N * (p / np.sum(p)))]
@@ -32,33 +38,19 @@ class Manager:
             h.seat_rate = np.sqrt(h.seatn) / s
 
     @staticmethod
-    def from_data(hall_data, movie_data=None):
-        # Tạo đối tượng Manager từ dữ liệu phòng và phim (dạng dict)
+    def from_data(hall_data, movie_data=None, gtime=None, gapub=None):
         if movie_data:
             return Manager(
-                [Hall(id_, *propteries) for id_, propteries in hall_data.items()],
-                [Movie(id_, propteries[0], propteries[1], propteries[2], propteries[3]) for id_, propteries in movie_data.items()]
-            )
+            [Hall(id_, *propteries) for id_, propteries in hall_data.items()],
+            [Movie(id_, propteries[0], propteries[1], propteries[2], propteries[3], gtime=gtime, gapub=gapub) for id_, propteries in movie_data.items()],
+            gtime=gtime,
+            gapub=gapub
+        )
         else:
-            return Manager([Hall(id_, *propteries) for id_, propteries in hall_data.items()])
-
+            return Manager([Hall(id_, *propteries) for id_, propteries in hall_data.items()], gtime=gtime, gapub=gapub)
     @staticmethod
     def from_db(lst):
         return Manager([Hall.from_db(*args) for args in lst])
-
-    def insert_into(self, j, k, t=None):
-        # Chèn một phim vào phòng k tại thời điểm t
-        if t is None:
-            for time in range(gapub):
-                flag = True
-                for kk, h in enumerate(self.halls):
-                    if kk != k:
-                        for m in h.movies:
-                            if time == m.start:
-                                flag = False
-                if flag:
-                    t = time
-        self.halls[k].insert(0, self.movies[j].copy(), t)
 
     def count(self):
         # Đếm số lần chiếu của từng phim trên toàn bộ hệ thống
@@ -109,7 +101,7 @@ class Manager:
         for k, h in enumerate(self.halls):
             # golden period
             h.movies = [self.movies[i].copy()]
-            h.movies[0].start = gtime - 75 * 60 + ts[k] * 300
+            h.movies[0].start = self.gtime - 75 * 60 + ts[k] * 300
             individual[k] = [i]
             lst[i] -= 1
             if lst[i] == 0:
@@ -117,7 +109,7 @@ class Manager:
         for k, h in enumerate(self.halls):
             # common period
             n = h.type_
-            times = np.random.randint(0, gapub, size=n)
+            times = np.random.randint(0, self.gapub, size=n)
             for l in range(1, n):
                 end = h.movies[0].start - (times[l]+1) * 300
                 start = end - self.movies[i].length
@@ -131,11 +123,11 @@ class Manager:
                     lst[i] -= 1
                 elif start < h.start:
                     gap = (h.movies[0].start - h.start)//300
-                    if gap <= gapub:
+                    if gap <= self.gapub:
                         individual[k] = [gap] + individual[k]
                     else:
                         for j, m in enumerate(self.movies):
-                            if gap * 300 - 300 * gapub <= m.length + 300 <= gap * 300 and lst[j] > 0:
+                            if gap * 300 - 300 * self.gapub <= m.length + 300 <= gap * 300 and lst[j] > 0:
                                 h.movies.insert(0, m.copy())
                                 h.movies[0].end = h.movies[1].start - 300
                                 t0 = (h.movies[0].start - h.start)//300
@@ -146,7 +138,7 @@ class Manager:
                             while lst[i] <= 0:
                                 i += 1
                             lst[i] -= 1
-                            t0 = randint(0, gapub-1)
+                            t0 = randint(0, self.gapub-1)
                             individual[k] = [t0, i, 1] + individual[k]
                             h.movies[0].start = self.movies[i].length + 300 * (t0 +1)
                             h.movies.insert(0, self.movies[i].copy())
@@ -195,14 +187,14 @@ class Manager:
         for k, h in enumerate(self.halls):
             # Arrange movies in prime time
             h.movies = [self.movies[i].copy()]
-            h.movies[0].start = gtime - 75 * 60 + ts[k] * 300
+            h.movies[0].start = self.gtime - 75 * 60 + ts[k] * 300
             individual[k] = [i]
             lst[i] -= 1
             if lst[i] == 0:
                 i += 1
             # Arrange movies in common time
             n = h.type_
-            times = np.random.randint(0, gapub, size=n)
+            times = np.random.randint(0, self.gapub, size=n)
             for l in range(1, n):
                 end = h.movies[0].start - (times[l]+1) * 300
                 start = end - self.movies[i].length
@@ -216,11 +208,11 @@ class Manager:
                     lst[i] -= 1
                 elif start < h.start:
                     gap = (h.movies[0].start - h.start)//300
-                    if gap <= gapub:
+                    if gap <= self.gapub:
                         individual[k] = [gap] + individual[k]
                     else:
                         for j, m in enumerate(self.movies):
-                            if gap * 300 - 300 * gapub <= m.length + 300 <= gap * 300 and lst[j] > 0:
+                            if gap * 300 - 300 * self.gapub <= m.length + 300 <= gap * 300 and lst[j] > 0:
                                 h.movies.insert(0, m.copy())
                                 h.movies[0].end = h.movies[1].start - 300
                                 t0 = (h.movies[0].start - h.start)//300
@@ -231,7 +223,7 @@ class Manager:
                             while lst[i] <= 0:
                                 i += 1
                             lst[i] -= 1
-                            t0 = randint(0, gapub-1)
+                            t0 = randint(0, self.gapub-1)
                             individual[k] = [t0, i, 1] + individual[k]
                             h.movies[0].start = self.movies[i].length + 300 * (t0 +1)
                             h.movies.insert(0, self.movies[i].copy())
@@ -269,13 +261,13 @@ class Manager:
                 h.movies = h.movies[:d]
         return individual
 
+
     def initSchedule(self, hook=list):
         # Chọn ngẫu nhiên một trong hai kiểu khởi tạo lịch chiếu
         if random() < .5:
             return self.initSchedule1(hook)
         else:
             return self.initSchedule2(hook)
-
 
     def fitness(self):
         # Tính toán các tiêu chí đánh giá lịch chiếu (fitness)
@@ -289,7 +281,11 @@ Minimum time interval: %.4f+%.4f;
 Similarity between popularity and show times: %.4f;
 Total popularity (prime time): %.4f(%.4f);
 The number of full-screen movie halls: %d'''%(d1, d2, self.check_rate(), self.total_hot(), self.ghot(), self.check_time()))
-    
+
+    def print_fitness(self):
+        # In ra giá trị fitness của lịch chiếu
+        print('fitness: %.4f, %.4f, %.4f, %d'%(self.time_interval(), self.check_rate(), self.total_hot(), self.check_time()))
+
     def hot(self):
         # Tính tổng độ hot của các phim được chiếu
         # total popularity
@@ -323,16 +319,16 @@ The number of full-screen movie halls: %d'''%(d1, d2, self.check_rate(), self.to
     def check_rate(self):
         # Đánh giá độ tương đồng giữa tỷ lệ chiếu thực tế và tỷ lệ đề xuất
         """Popularity ~ Times ratio ~ Screening rate ~ Number ratio ~ Box office rate
-The degree of similarity between the system recommended screening rate and the actual screening rate
+        The degree of similarity between the system recommended screening rate and the actual screening rate
         """
         dict_ = self.count()
         d = 0
-        movie_ids = list(self.movies.keys())
-        hotp = np.array([self.movies[k][1] for k in movie_ids])
+        hotp = np.array([m.hot for m in self.movies])        
         S = np.sum(hotp)
-        hotp /= S
+        hotp /= np.sum(hotp)
         for id_, rate in dict_.items():
-            d += abs(self.movies[id_][1]/S - rate)
+              movie_obj = next(m for m in self.movies if m.id_ == id_)
+              d += abs(movie_obj.hot / S - rate)
         return 1 / (d + 0.001)
 
     def check_interval(self):
@@ -359,6 +355,132 @@ The degree of similarity between the system recommended screening rate and the a
 
         return delta / 60
 
+    def criterion1(self):
+        # Tiêu chí 1: Đánh giá sự hợp lý khi sắp xếp phim vào phòng
+        # Rationality of arranging movie screening halls(安排影片放映厅的合理性)
+        c = self.count()
+        alpha = 0
+        for m in self.movies:
+            for k, h in enumerate(self.halls):
+                hc = h.count()
+                if m.id_ in hc and c[m.id_] < hc[m.id_] * 2:
+                    alpha += abs(m.hot - h.seat_rate)
+                    break
+        return alpha
+
+    def criterion2(self):
+        # Tiêu chí 2: Đánh giá độ tương đồng giữa tỷ lệ chiếu thực tế và tỷ lệ đề xuất
+        # The degree of similarity between the system recommended screening rate and the actual screening rate(系统推荐排片率与实际排片率接近程度)
+        return self.check_rate()
+
+    def criterion3(self):
+        # Tiêu chí 3: Số lượng phim chiếu trong khung giờ vàng
+        # the number of movies shown during the prime time(黄金时间段放映电影数)
+        hot = 0
+        for h in self.halls:
+            for m in h.movies[::-1]:
+                if m.isgolden():
+                    hot += 1
+                    break
+        return hot
+
+    def criterion4(self):
+        # Tiêu chí 4: Phim hot nhất có được chiếu ở phòng tốt nhất trong khung giờ vàng không
+        # the most popular movie screened in the optimal hall during the prime time(最火的影片排入最优厅黄金时间段)
+        for m in self.halls[0].movies:
+            if m.id_ == self.movies[0].id_ and m.isgolden():
+                return 1
+        return 0
+
+
+    def criterion5(self):
+        # Tiêu chí 5: (placeholder, luôn trả về 1)
+        return 1
+
+    def criterion6(self):
+        # Tiêu chí 6: Đánh giá khoảng cách giữa các phim chiếu trong khung giờ vàng
+        # Rationality of the interval between the opening of all movies in prime time (所有电影黄金时段开映间隔合理性)
+        times = np.sort([m.start for h in self.halls for m in h.movies if m.isgolden()])
+        times = np.diff(times)
+        return 1
+
+    def criterion7(self):
+        # Tiêu chí 7: Đánh giá khoảng cách giữa các phim chiếu ngoài khung giờ vàng
+        # (所有电影非黄金时段开映间隔合理性)
+        times = np.sort([m.start for h in self.halls for m in h.movies if not m.isgolden()])
+        times = np.diff(times)
+        return 1
+
+    def criterion8(self):
+        # Tiêu chí 8: Tránh các phim chiếu cùng lúc
+        # (避免同时开场)
+        return 1
+
+    def criterion9(self):
+        # Tiêu chí 9: Đảm bảo khoảng cách ngắn cho các phim có doanh thu cao
+        # (高票房日子场间隔尽量短)
+        times = np.sort([m.start for h in self.halls for m in h.movies])
+        return 1
+
+    def criterion10(self, latest='22'):
+        # Tiêu chí 10: Đánh giá thời gian chiếu của phim hoạt hình ít hot
+        # (低热度动画片开映时间合理性)
+        n = 0
+        for h in self.halls:
+            for m in h.movies:
+                if '动画' in m.type and m.hot < 1/len(self.halls) and m.end > latest:
+                    n += 1
+        return n
+
+    def criterion11(self, earliest='22'):
+        # Tiêu chí 11: Đánh giá thời gian chiếu của phim kinh dị ít hot
+        # (低热度动画片开映时间合理性)
+        n = 0
+        for h in self.halls:
+            for m in h.movies:
+                if '恐怖' in m.type and m.hot < 0.5/len(self.halls) and m.start < earliest:
+                    n += 1
+        return n
+
+    def hasbighall(self):
+        # Kiểm tra có phòng chiếu lớn vượt trội không
+        return self.halls[0].seatn > self.halls[1].seatn * 1.5
+
+    def criterion12(self):
+        # Tiêu chí 12: Đánh giá việc chia sẻ phòng lớn cho các phim hot
+        # Hall sharing status(大厅共用情况)
+        m, mm = self.movies[:2]
+        if self.hasbighall() and abs(m.hot - mm.hot) < 0.05:
+            gm = [m for m in self.halls[0].movies() if m.isgolden]
+            if set(m.id_ for m in gm) == {m.id_, mm.id_}:
+                return 1
+            else:
+                return 0
+
+
+    def criterion13(self):
+        # Tiêu chí 13: Đánh giá độ đa dạng của lịch chiếu
+        # The richness of screening(影片排映丰富度)
+        if len(self.halls) >= 6 and sum(m.hot for m in self.movies[:5])> .05:
+            return len(self.count())
+
+
+    def criterion14(self, minhot=0.1):
+        # Tiêu chí 14: Đảm bảo phim ít hot không chiếu trong khung giờ vàng
+        # not popular movie (小片不在黄金时段)
+        n = 0
+        for h in self.halls:
+            for m in h:
+                if m.isgolden() and m.hot < minhot:
+                    n += 1
+        return n
+
+    def print_criterion(self):
+        # In ra giá trị các tiêu chí đánh giá lịch chiếu
+        for k in range(1, 13):
+            if k != 10 and k!=11:
+                print('criterion%d:'%k, getattr(self, 'criterion%d'%k)())
+
     def dumps(self):
         # In ra thông tin chi tiết lịch chiếu của từng phòng
         for h in self.halls:
@@ -369,7 +491,7 @@ The degree of similarity between the system recommended screening rate and the a
         # In ra thống kê tỷ lệ chiếu của từng phim
         dict_ = self.count()
         for id_, rate in dict_.items():
-            print(movies[id_][1]/100, rate)
+            print(self.movies[id_][1]/100, rate)
 
     def plot(self, axes=None):
         # Vẽ biểu đồ lịch chiếu phim cho các phòng
@@ -410,8 +532,8 @@ The degree of similarity between the system recommended screening rate and the a
                 axes.plot((m.start, m.end), (k, k), color=color, linestyle='-')
             axes.plot((h.start, h.start), (k-1/2, k+1/2), color='k')
             axes.plot((h.last, h.last), (k-1/2, k+1/2), color='k')
-        axes.plot((gtime-75*60, gtime-75*60), (0, H), color='y', linestyle='--')
-        axes.plot((gtime+75*60, gtime+75*60), (0, H), color='y', linestyle='--')
+        axes.plot((self.gtime-75*60, self.gtime-75*60), (0, H), color='y', linestyle='--')
+        axes.plot((self.gtime+75*60, self.gtime+75*60), (0, H), color='y', linestyle='--')
         axes.set_xlabel('time')
         axes.set_ylabel('hall')
         axes.set_title('movie schedule')
@@ -424,3 +546,4 @@ The degree of similarity between the system recommended screening rate and the a
         plt.savefig('movie.png')
         plt.close()
         print('Đã lưu ảnh movie.png!')
+

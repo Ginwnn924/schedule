@@ -1,5 +1,4 @@
 import copy 
-from constant import GTIME as gtime, GAPUP as gapup
 from helper import stamp2str
 
 class Movie(object):
@@ -11,8 +10,8 @@ class Movie(object):
     type_: type
     '''
     
-    __slots__ = ('id_', 'length', 'hot', 'type_', 'name', '__start', '__end')
-    def __init__(self, id_, length, hot, type_, name):
+    __slots__ = ('id_', 'length', 'hot', 'type_', 'name', '__start', '__end', 'gtime', 'gapub')
+    def __init__(self, id_, length, hot, type_, name, gtime=None, gapub=None):
         # Khởi tạo đối tượng Movie với các thuộc tính cơ bản
         self.id_ = id_
         self.length = length * 60
@@ -21,6 +20,8 @@ class Movie(object):
         self.name = name
         self.__start = 0
         self.__end = length * 60
+        self.gtime = gtime
+        self.gapub = gapub
 
     def __str__(self):
         # Trả về chuỗi mô tả phim, gồm id, độ hot, thời gian chiếu
@@ -49,7 +50,7 @@ class Movie(object):
 
     def isgolden(self):
         # Kiểm tra phim có chiếu trong khung giờ vàng (prime time) không
-        return self.__end - 75 * 60 <= gtime <= self.__start + 75 * 60
+        return self.__end - 75 * 60 <= self.gtime <= self.__start + 75 * 60
 
     def copy(self):
         # Tạo bản sao của đối tượng Movie
