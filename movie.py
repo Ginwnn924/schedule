@@ -305,6 +305,7 @@ class Manager:
                 h.movies = h.movies[:d]
         return individual
 
+
     def initSchedule(self, hook=list):
         # Chọn ngẫu nhiên một trong hai kiểu khởi tạo lịch chiếu
         if random() < .5:
