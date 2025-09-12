@@ -14,12 +14,10 @@ class Hall:
     type_: type
     '''
 
-    def __init__(self, id_, seatn, start, last, entrance=1, type_=6, name=None):
+    def __init__(self, id_, seatn, entrance=1, type_=6, name=None):
         # Khởi tạo đối tượng Hall với các thuộc tính cơ bản
         self.id_ = id_
         self.seatn = seatn
-        self.start = start
-        self.last = last
         self.entrance = entrance
         self.type_ = type_
         self.name = name

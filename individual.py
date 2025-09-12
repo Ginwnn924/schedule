@@ -11,19 +11,18 @@ class Individual(BaseIndividual):
 
     element_class = Chromosome
 
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     if (self.manager is None):
+    #         raise ValueError("Manager must be provided")
+    #     # self.manager = manager  # lưu manager vào cá thể
 
-
-
-    def _fitness(self):
-        if self.manager is None:
-            raise ValueError("Manager chưa được gán!")
-        self.manager.schedule(self)
-        return np.dot((50, 20, 2, 1), self.manager.fitness())
 
 
     @side_effect
-    def mutate(self, movien, halln):
-        self[:] = mutRandom(self, movien=movien, halln=halln)
+    def mutate(self, manager):
+        # Đột biến cá thể
+        self[:] = mutRandom(self, manager, indpb1=0.15, indpb2=0.8)
 
     def cross(self, other):
         # Lai ghép hai cá thể
@@ -33,3 +32,8 @@ class Individual(BaseIndividual):
             return super().cross(other)
         else:
             return self.copy()
+
+    def _fitness(self, manager):
+        # Tính toán fitness cho cá thể
+        manager.schedule(self)
+        return np.dot((50, 20, 2, 1), manager.fitness())
