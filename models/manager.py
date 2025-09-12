@@ -5,7 +5,7 @@ from random import random, randint
 from helper import mymin
 from models.hall import Hall
 from models.movie import Movie
-
+from constant import GAPUP as gapub
 
 
 
@@ -15,14 +15,13 @@ class Manager:
     halls: halls
     '''
 
-    def __init__(self, halls, movies=None, gtime=None, gapub=None, sorted=True):
+    def __init__(self, halls, movies=None, gtime=None, sorted=True):
         # Khởi tạo đối tượng Manager, sắp xếp phòng và phim, tính toán các thông số ban đầu
         self.halls = halls
         for h in halls:
             h.manager = self
         self.movies = movies
         self.gtime = gtime
-        self.gapub = gapub
         if sorted:
             self.halls.sort(key=lambda h:h.seatn, reverse=True)
             if movies:
@@ -38,16 +37,15 @@ class Manager:
             h.seat_rate = np.sqrt(h.seatn) / s
 
     @staticmethod
-    def from_data(hall_data, movie_data=None, gtime=None, gapub=None):
+    def from_data(hall_data, movie_data=None, gtime=None):
         if movie_data:
             return Manager(
             [Hall(id_, *propteries) for id_, propteries in hall_data.items()],
-            [Movie(id_, propteries[0], propteries[1], propteries[2], propteries[3], gtime=gtime, gapub=gapub) for id_, propteries in movie_data.items()],
-            gtime=gtime,
-            gapub=gapub
+            [Movie(id_, propteries[0], propteries[1], propteries[2], propteries[3], gtime=gtime) for id_, propteries in movie_data.items()],
+            gtime=gtime
         )
         else:
-            return Manager([Hall(id_, *propteries) for id_, propteries in hall_data.items()], gtime=gtime, gapub=gapub)
+            return Manager([Hall(id_, *propteries) for id_, propteries in hall_data.items()], gtime=gtime)
     @staticmethod
     def from_db(lst):
         return Manager([Hall.from_db(*args) for args in lst])
@@ -78,7 +76,7 @@ class Manager:
         # individual.gmovies = {}
         for k, h in enumerate(self.halls):
             n = h.type_
-            h.movies = [self.movies[i].copy() for i in individual[k][1:2*n:2]]
+            h.movies = [self.movies[int(i)].copy() for i in individual[k][1:2*n:2]]
             times = individual[k][:2*n-1:2]
             h.movies[0].start = h.start + times[0] * 300
             for l, m in enumerate(h.movies[1:], start=1):
@@ -109,7 +107,7 @@ class Manager:
         for k, h in enumerate(self.halls):
             # common period
             n = h.type_
-            times = np.random.randint(0, self.gapub, size=n)
+            times = np.random.randint(0, gapub, size=n)
             for l in range(1, n):
                 end = h.movies[0].start - (times[l]+1) * 300
                 start = end - self.movies[i].length
@@ -123,11 +121,11 @@ class Manager:
                     lst[i] -= 1
                 elif start < h.start:
                     gap = (h.movies[0].start - h.start)//300
-                    if gap <= self.gapub:
+                    if gap <= gapub:
                         individual[k] = [gap] + individual[k]
                     else:
                         for j, m in enumerate(self.movies):
-                            if gap * 300 - 300 * self.gapub <= m.length + 300 <= gap * 300 and lst[j] > 0:
+                            if gap * 300 - 300 * gapub <= m.length + 300 <= gap * 300 and lst[j] > 0:
                                 h.movies.insert(0, m.copy())
                                 h.movies[0].end = h.movies[1].start - 300
                                 t0 = (h.movies[0].start - h.start)//300
@@ -138,7 +136,7 @@ class Manager:
                             while lst[i] <= 0:
                                 i += 1
                             lst[i] -= 1
-                            t0 = randint(0, self.gapub-1)
+                            t0 = randint(0, gapub-1)
                             individual[k] = [t0, i, 1] + individual[k]
                             h.movies[0].start = self.movies[i].length + 300 * (t0 +1)
                             h.movies.insert(0, self.movies[i].copy())
@@ -194,7 +192,7 @@ class Manager:
                 i += 1
             # Arrange movies in common time
             n = h.type_
-            times = np.random.randint(0, self.gapub, size=n)
+            times = np.random.randint(0, gapub, size=n)
             for l in range(1, n):
                 end = h.movies[0].start - (times[l]+1) * 300
                 start = end - self.movies[i].length
@@ -208,11 +206,11 @@ class Manager:
                     lst[i] -= 1
                 elif start < h.start:
                     gap = (h.movies[0].start - h.start)//300
-                    if gap <= self.gapub:
+                    if gap <= gapub:
                         individual[k] = [gap] + individual[k]
                     else:
                         for j, m in enumerate(self.movies):
-                            if gap * 300 - 300 * self.gapub <= m.length + 300 <= gap * 300 and lst[j] > 0:
+                            if gap * 300 - 300 * gapub <= m.length + 300 <= gap * 300 and lst[j] > 0:
                                 h.movies.insert(0, m.copy())
                                 h.movies[0].end = h.movies[1].start - 300
                                 t0 = (h.movies[0].start - h.start)//300
@@ -223,7 +221,7 @@ class Manager:
                             while lst[i] <= 0:
                                 i += 1
                             lst[i] -= 1
-                            t0 = randint(0, self.gapub-1)
+                            t0 = randint(0, gapub-1)
                             individual[k] = [t0, i, 1] + individual[k]
                             h.movies[0].start = self.movies[i].length + 300 * (t0 +1)
                             h.movies.insert(0, self.movies[i].copy())

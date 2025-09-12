@@ -50,7 +50,6 @@ class RequestData(BaseModel):
     open_time: int
     close_time: int
     gold_time: int
-    gap_up: int
     movies: List[Movie]
     halls: List[Hall]
 
@@ -58,47 +57,61 @@ class RequestData(BaseModel):
 @app.post("/convert")
 def convert_data(data: RequestData):
 
-    # Gán start - end time
-    # START_TIME = data.open_time
-    # END_TIME = data.close_time
-    # gtime = data.gold_time
-    # gapub = data.gap_up
+    # with open('test.json', 'r', encoding='utf-8') as f:
+    #     data = json.load(f)
 
-    # # # Convert movies
-    # movies_dict = {
-    #     str(movie.id): [movie.duration, movie.rating, movie.type, movie.title]
-    #     for movie in data.movies
+    # START_TIME = data['open_time']
+    # END_TIME = data['close_time']
+    # gtime = data['gold_time']
+
+    # movies = {
+    #     str(movie['id']): [movie['duration'], movie['rating'], movie['type'], movie['title']]
+    #     for movie in data['movies']
     # }
 
-
-    # # # Convert halls (key tuỳ mày, ở đây tao lấy id làm key string)
-    # halls_dict = {
-    #     str(hall.id): (hall.capacity, data.open_time, data.close_time, hall.max_showtimes, hall.name)
-    #     for hall in data.halls
+    # halls = {
+    #     str(hall['id']): (hall['capacity'], START_TIME, END_TIME, hall['max_showtimes'], hall['name'])
+    #     for hall in data['halls']
     # }
 
+    START_TIME = data.open_time
+    END_TIME = data.close_time
+    gtime = data.gold_time
 
-    with open('movies.json', 'r', encoding='utf-8') as f:
-        movies = json.load(f)
-
-    START_TIME = 1489111200
-    END_TIME   = 1489158000
-
-    gtime = 1489147200
-    gapub = 10
-
-    halls = {
-        '37756': (154, 1489111200, 1489158000, 6, "Hall A"),
-        '37757': (147, 1489111200, 1489158000, 6, "Hall B"),
-        '37758': (146, 1489111200, 1489158000, 6, "Hall C"),
-        '37755': (235, 1489111200, 1489158000, 6, "Hall D"),
-        '37759': (126, 1489111200, 1489158000, 6, "Hall E"),
-        '37762': (146, 1489111200, 1489158000, 6, "Hall F"),
-        '37754': (410, 1489111200, 1489158000, 6, "Hall G"),
-        '37761': (186, 1489111200, 1489158000, 6, "Hall H"),
+    movies = {
+        str(movie.id): [movie.duration, movie.rating, movie.type, movie.title]
+        for movie in data.movies
     }
 
-    manager = Manager.from_data(halls, movies, gtime=gtime, gapub=gapub)
+    halls = {
+        str(hall.id): (hall.capacity, START_TIME, END_TIME, hall.max_showtimes, hall.name)
+        for hall in data.halls
+    }
+
+    print(movies)
+    print(halls)
+
+    # with open('movies.json', 'r', encoding='utf-8') as f:
+    #     movies = json.load(f)
+
+    # START_TIME = 1489111200
+    # END_TIME   = 1489158000
+
+    # gtime = 1489147200
+
+    # halls = {
+    #     '37756': (154, 1489111200, 1489158000, 6, "Hall A"),
+    #     '37757': (147, 1489111200, 1489158000, 6, "Hall B"),
+    #     '37758': (146, 1489111200, 1489158000, 6, "Hall C"),
+    #     '37755': (235, 1489111200, 1489158000, 6, "Hall D"),
+    #     '37759': (126, 1489111200, 1489158000, 6, "Hall E"),
+    #     '37762': (146, 1489111200, 1489158000, 6, "Hall F"),
+    #     '37754': (410, 1489111200, 1489158000, 6, "Hall G"),
+    #     '37761': (186, 1489111200, 1489158000, 6, "Hall H"),
+    # }
+
+
+    manager = Manager.from_data(halls, movies, gtime=gtime)
     Population = HOFPopulation[Individual]
 
 
