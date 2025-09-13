@@ -10,6 +10,27 @@ from constant import GAPUP as gapub
 
 
 class Manager:
+    def dumps_json(self):
+        result = []
+        for h in self.halls:
+            hall_info = {
+                "id": str(h.id_),
+                "name": h.name,
+                "movies": []
+            }
+            for m in h.movies:
+                # Chuyển đổi thời gian sang dạng HH:MM
+                from datetime import datetime
+                def to_hm(ts):
+                    return datetime.fromtimestamp(ts).strftime("%H:%M")
+                hall_info["movies"].append({
+                    "id": str(m.id_),
+                    "name": m.name,
+                    "start_time": to_hm(m.start),
+                    "end_time": to_hm(m.end)
+                })
+            result.append(hall_info)
+        return result
     # Quản lý toàn bộ lịch chiếu, gồm danh sách phòng và phim, các hàm tối ưu và đánh giá lịch
     '''Manager has 1 (principal) proptery
     halls: halls

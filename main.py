@@ -127,13 +127,11 @@ def convert_data(data: RequestData):
     ind = pop.best_individual
 
     manager.schedule(ind)
-    manager.print_fitness()
+    # manager.print_fitness()
 
-    manager.check()
+    # manager.check()
     manager.dumps()
-    manager.plot()
-    manager.print_criterion()
+    # manager.plot()
+    # manager.print_criterion()
 
-    return {
-        "message": "Data converted successfully",
-    }
+    return manager.dumps_json()
