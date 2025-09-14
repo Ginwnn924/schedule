@@ -512,7 +512,7 @@ The number of full-screen movie halls: %d'''%(d1, d2, self.check_rate(), self.to
         for id_, rate in dict_.items():
             print(self.movies[id_][1]/100, rate)
 
-    def plot(self, axes=None):
+    def plot(self, axes=None, filename=None):
         # Vẽ biểu đồ lịch chiếu phim cho các phòng
         from matplotlib.ticker import FuncFormatter, MaxNLocator
         if axes is None:
@@ -562,7 +562,7 @@ The number of full-screen movie halls: %d'''%(d1, d2, self.check_rate(), self.to
         hall_legend = 'Phòng:\n' + '\n'.join([f'{h.id_} - {h.name}' for h in self.halls])
         # Hiển thị chú thích ở góc phải dưới ảnh
         plt.gcf().text(0.99, 0.01, movie_legend + '\n\n' + hall_legend, fontsize=8, va='bottom', ha='right', family='monospace', bbox=dict(facecolor='white', alpha=0.7, edgecolor='gray'))
-        plt.savefig('movie.png')
+        plt.savefig(filename)
         plt.close()
-        print('Đã lưu ảnh movie.png!')
+        print(f'Đã lưu ảnh {filename}!')
 

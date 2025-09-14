@@ -47,9 +47,11 @@ class Hall(BaseModel):
     max_showtimes: int
 
 class RequestData(BaseModel):
-    open_time: int
-    close_time: int
-    gold_time: int
+    open_time: str  # "08:00"
+    close_time: str # "23:00"
+    gold_time: str  # "19:00"
+    date_start: str # "2025-09-15"
+    date_end: str   # "2025-09-15"
     movies: List[Movie]
     halls: List[Hall]
 
@@ -60,44 +62,60 @@ def convert_data(data: RequestData):
     # with open('test.json', 'r', encoding='utf-8') as f:
     #     data = json.load(f)
 
-    # START_TIME = data['open_time']
-    # END_TIME = data['close_time']
-    # gtime = data['gold_time']
+    import datetime
+    def to_timestamp(date_str, time_str):
+        dt = datetime.datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        return int(dt.timestamp())
 
-    # movies = {
-    #     str(movie['id']): [movie['duration'], movie['rating'], movie['type'], movie['title']]
-    #     for movie in data['movies']
-    # }
-
-    # halls = {
-    #     str(hall['id']): (hall['capacity'], START_TIME, END_TIME, hall['max_showtimes'], hall['name'])
-    #     for hall in data['halls']
-    # }
-
-    START_TIME = data.open_time
-    END_TIME = data.close_time
-    gtime = data.gold_time
+    # Tạo danh sách ngày từ date_start đến date_end
+    date_list = []
+    start = datetime.datetime.strptime(data.date_start, "%Y-%m-%d")
+    end = datetime.datetime.strptime(data.date_end, "%Y-%m-%d")
+    delta = (end - start).days
+    for i in range(delta + 1):
+        d = start + datetime.timedelta(days=i)
+        date_list.append(d.strftime("%Y-%m-%d"))
 
     movies = {
         str(movie.id): [movie.duration, movie.rating, movie.type, movie.title]
         for movie in data.movies
     }
 
-    halls = {
-        str(hall.id): (hall.capacity, START_TIME, END_TIME, hall.max_showtimes, hall.name)
-        for hall in data.halls
-    }
+    results = {}
+    for date_str in date_list:
+        START_TIME = to_timestamp(date_str, data.open_time)
+        END_TIME = to_timestamp(date_str, data.close_time)
+        gtime = to_timestamp(date_str, data.gold_time)
 
-    print(movies)
-    print(halls)
+        halls = {
+            str(hall.id): (hall.capacity, START_TIME, END_TIME, hall.max_showtimes, hall.name)
+            for hall in data.halls
+        }
 
-    # with open('movies.json', 'r', encoding='utf-8') as f:
-    #     movies = json.load(f)
+        manager = Manager.from_data(halls, movies, gtime=gtime)
+        Population = HOFPopulation[Individual]
+        pop = Population([
+            Individual(manager.initSchedule(), manager=manager)
+            for _ in range(5)
+        ])
+        pop.evolve()
+        ind = pop.best_individual
+        manager.schedule(ind)
+        manager.dumps()
 
-    # START_TIME = 1489111200
-    # END_TIME   = 1489158000
+        # Ghi log schedule của ngày
+        print(f"\nLịch chiếu ngày {date_str}:")
+        print(manager.dumps_json())
 
-    # gtime = 1489147200
+        # Vẽ hình, tên file là ngày
+        try:
+            manager.plot(filename=f"{date_str}.png")
+        except Exception as e:
+            print(f"Plot error for {date_str}: {e}")
+
+        results[date_str] = manager.dumps_json()
+
+    return results
 
     # halls = {
     #     '37756': (154, 1489111200, 1489158000, 6, "Hall A"),
