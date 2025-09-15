@@ -53,5 +53,19 @@ class Movie(object):
         return self.__end - 75 * 60 <= self.gtime <= self.__start + 75 * 60
 
     def copy(self):
-        # Tạo bản sao của đối tượng Movie
-        return copy.copy(self)
+        # Tạo Movie mới với metadata ban đầu
+        new_movie = Movie(
+            id_=self.id_,
+            length=self.length // 60,  # vì self.length đang tính bằng giây
+            hot=int(self.hot * 100),   # hot lưu dạng %
+            type_=self.type_,
+            name=self.name,
+            gtime=self.gtime,
+            gapub=self.gapub
+        )
+        # reset giờ về mặc định
+        new_movie._Movie__start = 0
+        new_movie._Movie__end = new_movie.length
+        # print(f"[DEBUG] copy movie {self.id_}: m1({self.start}, {self.end}) -> m2({new_movie.start}, {new_movie.end})")
+
+        return new_movie

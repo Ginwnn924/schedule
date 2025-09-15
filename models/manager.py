@@ -92,9 +92,41 @@ class Manager:
             dict_[id_] /= S
         return dict_
 
+    def duplicate_showtimes_penalty(self):
+        """
+        Trả về số lượng suất chiếu bị trùng giờ bắt đầu giữa các phòng cho cùng một phim.
+        """
+        showtimes = {}
+        penalty = 0
+        for h in self.halls:
+            for m in h.movies:
+                key = (m.id_, m.start)
+                if key in showtimes:
+                    penalty += 1
+                else:
+                    showtimes[key] = h.id_
+        return penalty
+
+    def check_duplicate_showtimes(self):
+        """
+        Kiểm tra các phim có suất chiếu trùng giờ bắt đầu ở nhiều phòng trong cùng một ngày.
+        In ra thông báo nếu phát hiện trùng.
+        """
+        showtimes = {}
+        for h in self.halls:
+            for m in h.movies:
+                key = (m.id_, m.start)
+                if key in showtimes:
+                    print(f"Trùng suất chiếu: Phim {m.name} ({m.id_}) bắt đầu lúc {stamp2str(m.start)} ở phòng {showtimes[key]} và phòng {h.id_}")
+                else:
+                    showtimes[key] = h.id_
+
     def schedule(self, individual):
         # Sắp xếp lịch chiếu cho từng phòng dựa trên cá thể (individual) của giải thuật tiến hóa
         # individual.gmovies = {}
+        # Reset movies in halls
+        for h in self.halls:
+            h.movies = []
         for k, h in enumerate(self.halls):
             n = h.type_
             h.movies = [self.movies[int(i)].copy() for i in individual[k][1:2*n:2]]
@@ -290,7 +322,8 @@ class Manager:
 
     def fitness(self):
         # Tính toán các tiêu chí đánh giá lịch chiếu (fitness)
-        return self.time_interval(), self.check_rate(), self.total_hot(), self.check_time()
+        penalty = self.duplicate_showtimes_penalty()
+        return self.time_interval() - penalty * 20, self.check_rate(), self.total_hot(), self.check_time()
 
     def check(self):
         # In ra các thông số kiểm tra chất lượng lịch chiếu

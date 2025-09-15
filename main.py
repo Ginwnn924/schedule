@@ -94,15 +94,25 @@ def convert_data(data: RequestData):
 
         manager = Manager.from_data(halls, movies, gtime=gtime)
         Population = HOFPopulation[Individual]
-        pop = Population([
-            Individual(manager.initSchedule(), manager=manager)
-            for _ in range(5)
-        ])
+        individuals = []
+        for _ in range(50):
+            try:
+                ind = Individual(manager.initSchedule(), manager=manager)
+                individuals.append(ind)
+            except IndexError:
+                # Nếu không đủ phim cho suất chiếu, bỏ qua cá thể này
+                pass
+        if not individuals:
+            raise Exception("Không đủ phim cho số lượng suất chiếu yêu cầu!")
+        pop = Population(individuals)
         pop.evolve()
         ind = pop.best_individual
         manager.schedule(ind)
-        manager.dumps()
+        manager.print_fitness()
 
+        manager.check_duplicate_showtimes()
+        manager.dumps()
+        pop.hall_of_fame.clear()
         # Ghi log schedule của ngày
         print(f"\nLịch chiếu ngày {date_str}:")
         print(manager.dumps_json())
@@ -129,27 +139,27 @@ def convert_data(data: RequestData):
     # }
 
 
-    manager = Manager.from_data(halls, movies, gtime=gtime)
-    Population = HOFPopulation[Individual]
+    # manager = Manager.from_data(halls, movies, gtime=gtime)
+    # Population = HOFPopulation[Individual]
 
 
-    pop = Population([
-    Individual(manager.initSchedule(), manager=manager)
-        for _ in range(5)
-    ])
+    # pop = Population([
+    # Individual(manager.initSchedule(), manager=manager)
+    #     for _ in range(5)
+    # ])
 
 
 
-    pop.evolve()
+    # pop.evolve()
 
-    ind = pop.best_individual
+    # ind = pop.best_individual
 
-    manager.schedule(ind)
-    # manager.print_fitness()
+    # manager.schedule(ind)
+    # # manager.print_fitness()
 
-    # manager.check()
-    manager.dumps()
-    # manager.plot()
-    # manager.print_criterion()
+    # # manager.check()
+    # manager.dumps()
+    # # manager.plot()
+    # # manager.print_criterion()
 
-    return manager.dumps_json()
+    # return manager.dumps_json()
