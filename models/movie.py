@@ -1,6 +1,7 @@
 import copy 
 from helper import stamp2str
-
+from uuid import UUID
+import uuid
 class Movie(object):
     # Đại diện cho một bộ phim, chứa thông tin id, độ dài, độ hot, loại, tên, thời gian bắt đầu/kết thúc
     '''Movie has 4 (principal) propteries
@@ -9,11 +10,15 @@ class Movie(object):
     hot: hot
     type_: type
     '''
+
     
     __slots__ = ('id_', 'length', 'hot', 'type_', 'name', '__start', '__end', 'gtime', 'gapub')
     def __init__(self, id_, length, hot, type_, name, gtime=None, gapub=None):
         # Khởi tạo đối tượng Movie với các thuộc tính cơ bản
-        self.id_ = id_
+        if isinstance(id_, uuid.UUID):
+            self.id_ = id_
+        else:
+            self.id_ = uuid.UUID(str(id_))
         self.length = length * 60
         self.hot = hot / 100
         self.type_ = type_
@@ -26,9 +31,9 @@ class Movie(object):
     def __str__(self):
         # Trả về chuỗi mô tả phim, gồm id, độ hot, thời gian chiếu
         if self.isgolden():
-            return 'movie %d(%.4s)*: %s - %s'%(self.id_, self.hot, stamp2str(self.start), stamp2str(self.end))
+            return 'movie %s(%.4s)*: %s - %s'%(str(self.id_), self.hot, stamp2str(self.start), stamp2str(self.end))
         else:
-            return 'movie %d(%.4s): %s - %s'%(self.id_, self.hot, stamp2str(self.start), stamp2str(self.end))
+            return 'movie %s(%.4s): %s - %s'%(str(self.id_), self.hot, stamp2str(self.start), stamp2str(self.end))
 
     @property
     def start(self):

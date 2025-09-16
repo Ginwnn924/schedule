@@ -6,6 +6,7 @@ from individual import Individual
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Dict, Any
+from uuid import UUID
 
 # # data
 # with open('movies.json', 'r', encoding='utf-8') as f:
@@ -34,24 +35,24 @@ app = FastAPI()
 
 # --------- Định nghĩa schema ----------
 class Movie(BaseModel):
-    id: int
+    id: UUID
     duration: int
     rating: float
     type: int
     title: str
 
 class Hall(BaseModel):
-    id: int
+    id: UUID
     name: str
     capacity: int
-    max_showtimes: int
+    maxShowtimes: int
 
 class RequestData(BaseModel):
-    open_time: str  # "08:00"
-    close_time: str # "23:00"
-    gold_time: str  # "19:00"
-    date_start: str # "2025-09-15"
-    date_end: str   # "2025-09-15"
+    openTime: str  # "08:00"
+    closeTime: str # "23:00"
+    goldenTime: str  # "19:00"
+    startDate: str # "2025-09-15"
+    endDate: str   # "2025-09-15"
     movies: List[Movie]
     halls: List[Hall]
 
@@ -69,8 +70,8 @@ def convert_data(data: RequestData):
 
     # Tạo danh sách ngày từ date_start đến date_end
     date_list = []
-    start = datetime.datetime.strptime(data.date_start, "%Y-%m-%d")
-    end = datetime.datetime.strptime(data.date_end, "%Y-%m-%d")
+    start = datetime.datetime.strptime(data.startDate, "%Y-%m-%d")
+    end = datetime.datetime.strptime(data.endDate, "%Y-%m-%d")
     delta = (end - start).days
     for i in range(delta + 1):
         d = start + datetime.timedelta(days=i)
@@ -81,14 +82,14 @@ def convert_data(data: RequestData):
         for movie in data.movies
     }
 
-    results = {}
+    results = []
     for date_str in date_list:
-        START_TIME = to_timestamp(date_str, data.open_time)
-        END_TIME = to_timestamp(date_str, data.close_time)
-        gtime = to_timestamp(date_str, data.gold_time)
+        START_TIME = to_timestamp(str(date_str), str(data.openTime))
+        END_TIME = to_timestamp(str(date_str), str(data.closeTime))
+        gtime = to_timestamp(str(date_str), str(data.goldenTime))
 
         halls = {
-            str(hall.id): (hall.capacity, START_TIME, END_TIME, hall.max_showtimes, hall.name)
+            str(hall.id): (hall.capacity, START_TIME, END_TIME, hall.maxShowtimes, hall.name)
             for hall in data.halls
         }
 
@@ -100,7 +101,6 @@ def convert_data(data: RequestData):
                 ind = Individual(manager.initSchedule(), manager=manager)
                 individuals.append(ind)
             except IndexError:
-                # Nếu không đủ phim cho suất chiếu, bỏ qua cá thể này
                 pass
         if not individuals:
             raise Exception("Không đủ phim cho số lượng suất chiếu yêu cầu!")
@@ -113,17 +113,13 @@ def convert_data(data: RequestData):
         manager.check_duplicate_showtimes()
         manager.dumps()
         pop.hall_of_fame.clear()
-        # Ghi log schedule của ngày
         print(f"\nLịch chiếu ngày {date_str}:")
         print(manager.dumps_json())
 
-        # Vẽ hình, tên file là ngày
-        try:
-            manager.plot(filename=f"{date_str}.png")
-        except Exception as e:
-            print(f"Plot error for {date_str}: {e}")
-
-        results[date_str] = manager.dumps_json()
+        results.append({
+            "date": date_str,
+            "showtimes": manager.dumps_json()
+        })
 
     return results
 

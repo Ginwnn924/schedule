@@ -1,7 +1,7 @@
 import numpy as np
 from helper import stamp2str
 from scipy import stats
-
+import uuid
 class Hall:
     # Đại diện cho một phòng chiếu, chứa thông tin id, số ghế, thời gian, loại, tên, danh sách phim
     '''Hall has 6 (principal) propteries
@@ -15,7 +15,10 @@ class Hall:
 
     def __init__(self, id_, seatn, start, last, type_=6, name=None):
         # Khởi tạo đối tượng Hall với các thuộc tính cơ bản
-        self.id_ = id_
+        if isinstance(id_, uuid.UUID):
+            self.id_ = id_
+        else:
+            self.id_ = uuid.UUID(str(id_))
         self.seatn = seatn
         self.start = start
         self.last = last
@@ -36,10 +39,10 @@ class Hall:
                 return m
 
     def __str__(self):
-        return 'hall_%s'%self.id_
+        return 'hall_%s'%str(self.id_)
 
     def __repr__(self):
-        return 'hall %s (%d)'%(self.id_, self.seatn)
+        return 'hall %s (%d)'%(str(self.id_), self.seatn)
 
     def random(self):
         AM = self.admission
@@ -53,10 +56,10 @@ class Hall:
 
     def dumps(self):
         # In ra thông tin phòng chiếu và các phim được chiếu trong phòng
-        print(f'Phòng: {self.name} ({self.id_})')
+        print(f'Phòng: {self.name} ({str(self.id_)})')
         for m in self.movies:
             if m.start <= self.last:
-                print(f'  Phim: {m.name} ({m.id_}) | Thời gian: {stamp2str(m.start)} - {stamp2str(m.end)}')
+                print(f'  Phim: {m.name} ({str(m.id_)}) | Thời gian: {stamp2str(m.start)} - {stamp2str(m.end)}')
 
     def insert(self, i, movie, t=0):
         # Chèn một phim vào vị trí i trong danh sách phim của phòng
