@@ -40,7 +40,6 @@ class RequestData(BaseModel):
     endDate: str   # "2025-09-15"
     movies: List[Movie]
     hallId: UUID
-    maxShowtimes: int
 
 
 # --------- API nhận JSON body ----------
@@ -61,7 +60,7 @@ def convert_data(data: RequestData):
     end = datetime.datetime.strptime(data.endDate, "%Y-%m-%d")
     delta = (end - start).days
     hall_id = data.hallId
-    max_showtimes = data.maxShowtimes
+    max_showtimes = 6
     for i in range(delta + 1):
         d = start + datetime.timedelta(days=i)
         date_list.append(d.strftime("%Y-%m-%d"))
