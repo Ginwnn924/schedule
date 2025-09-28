@@ -1,0 +1,1 @@
+pip install fastapi uvicorn[standard] pydantic sqlalchemy psycopg2-binary pandas numpy pyrimidine deap matplotlib python-multipart

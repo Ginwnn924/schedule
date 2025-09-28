@@ -7,30 +7,15 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Dict, Any
 from uuid import UUID
-
-# # data
-# with open('movies.json', 'r', encoding='utf-8') as f:
-#     movies = json.load(f)
-
-# START_TIME = 1489111200
-# END_TIME   = 1489158000
-
-# gtime = 1489147200
-# gapub = 10
-
-# halls = {
-#     '37756': (154, 1489111200, 1489158000, 6, "Hall A"),
-#     '37757': (147, 1489111200, 1489158000, 6, "Hall B"),
-#     '37758': (146, 1489111200, 1489158000, 6, "Hall C"),
-#     '37755': (235, 1489111200, 1489158000, 6, "Hall D"),
-#     '37759': (126, 1489111200, 1489158000, 6, "Hall E"),
-#     '37762': (146, 1489111200, 1489158000, 6, "Hall F"),
-#     '37754': (410, 1489111200, 1489158000, 6, "Hall G"),
-#     '37761': (186, 1489111200, 1489158000, 6, "Hall H"),
-# }
-
+from sqlalchemy import create_engine
+import pandas as pd
 
 app = FastAPI()
+
+
+engine = create_engine(
+    "postgresql+psycopg2://cineme_db:MgyzzizOWwpf7IoCqHM5n62ZnlGx1Qyn@dpg-d30j88ffte5s73efq5q0-a.singapore-postgres.render.com:5432/cineme_db_muz4"
+)
 
 
 # --------- Định nghĩa schema ----------
@@ -54,7 +39,9 @@ class RequestData(BaseModel):
     startDate: str # "2025-09-15"
     endDate: str   # "2025-09-15"
     movies: List[Movie]
-    halls: List[Hall]
+    hallId: UUID
+    maxShowtimes: int
+
 
 # --------- API nhận JSON body ----------
 @app.post("/convert")
@@ -73,6 +60,8 @@ def convert_data(data: RequestData):
     start = datetime.datetime.strptime(data.startDate, "%Y-%m-%d")
     end = datetime.datetime.strptime(data.endDate, "%Y-%m-%d")
     delta = (end - start).days
+    hall_id = data.hallId
+    max_showtimes = data.maxShowtimes
     for i in range(delta + 1):
         d = start + datetime.timedelta(days=i)
         date_list.append(d.strftime("%Y-%m-%d"))
@@ -81,6 +70,18 @@ def convert_data(data: RequestData):
         str(movie.id): [movie.duration, movie.rating, movie.type, movie.title]
         for movie in data.movies
     }
+    print(f"Movies: {movies}")
+
+    query = """
+        SELECT r.id, r.name, COUNT(s.id) AS capacity
+        FROM rooms r
+        LEFT JOIN seats s ON s.room_id = r.id
+        WHERE r.theater_id = %(hall_id)s
+        AND s.seat_type_id IS NOT NULL
+        GROUP BY r.id, r.name
+    """
+
+    data_query = pd.read_sql(query, con=engine, params={"hall_id": hall_id})
 
     results = []
     for date_str in date_list:
@@ -89,8 +90,8 @@ def convert_data(data: RequestData):
         gtime = to_timestamp(str(date_str), str(data.goldenTime))
 
         halls = {
-            str(hall.id): (hall.capacity, START_TIME, END_TIME, hall.maxShowtimes, hall.name)
-            for hall in data.halls
+            str(row["id"]): (row["capacity"], START_TIME, END_TIME, max_showtimes, row["name"])
+            for _, row in data_query.iterrows()
         }
 
         manager = Manager.from_data(halls, movies, gtime=gtime)
