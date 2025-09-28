@@ -113,8 +113,8 @@ def convert_data(data: RequestData):
         manager.check_duplicate_showtimes()
         manager.dumps()
         pop.hall_of_fame.clear()
-        print(f"\nLịch chiếu ngày {date_str}:")
-        print(manager.dumps_json())
+        # print(f"\nLịch chiếu ngày {date_str}:")
+        # print(manager.dumps_json())
 
         results.append({
             "date": date_str,
